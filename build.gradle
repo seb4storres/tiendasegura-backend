@@ -1,0 +1,99 @@
+plugins {
+    id("io.micronaut.application") version "4.4.4"
+    id("io.micronaut.aot") version "4.4.4"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
+}
+
+version = "0.1.0"
+group = "co.tiendasegura"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ── Micronaut Core ──
+    annotationProcessor("io.micronaut:micronaut-http-validation")
+    annotationProcessor("io.micronaut.serde:micronaut-serde-processor")
+    annotationProcessor("io.micronaut.validation:micronaut-validation-processor")
+
+    implementation("io.micronaut:micronaut-http-server-netty")
+    implementation("io.micronaut:micronaut-management")
+    implementation("io.micronaut.serde:micronaut-serde-jackson")
+    implementation("io.micronaut.validation:micronaut-validation")
+    implementation("jakarta.validation:jakarta.validation-api")
+
+    // ── Seguridad / JWT ──
+    annotationProcessor("io.micronaut.security:micronaut-security-annotations")
+    implementation("io.micronaut.security:micronaut-security-jwt")
+
+    // ── Base de datos: PostgreSQL + JDBC + Hikari ──
+    implementation("io.micronaut.sql:micronaut-jdbc-hikari")
+    implementation("io.micronaut.data:micronaut-data-tx-jdbc")
+    runtimeOnly("org.postgresql:postgresql")
+
+    // ── Flyway: migraciones de esquema ──
+    implementation("io.micronaut.flyway:micronaut-flyway")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
+
+    // ── Seguridad: BCrypt ──
+    implementation("org.mindrot:jbcrypt:0.4")
+
+    // ── Transacciones Jakarta ──
+    implementation("io.micronaut.data:micronaut-data-tx")
+
+    // ── Reactor (requerido por el TenantSecurityFilter reactivo) ──
+    implementation("io.projectreactor:reactor-core")
+
+    // ── Utilidades ──
+    implementation("org.slf4j:slf4j-api")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("org.yaml:snakeyaml")
+
+    // ── Testing ──
+    testImplementation("io.micronaut.test:micronaut-test-junit5")
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.assertj:assertj-core")
+    testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+}
+
+application {
+    mainClass = "co.tiendasegura.Application"
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion("21")
+    targetCompatibility = JavaVersion.toVersion("21")
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+}
+
+// ── Micronaut AOT: optimización en tiempo de compilación ──
+micronaut {
+    runtime("netty")
+    testRuntime("junit5")
+    processing {
+        incremental(true)
+        annotations("co.tiendasegura.*")
+    }
+    aot {
+        optimizeServiceLoading = true
+        convertYamlToJava = true
+        precomputeOperations = true
+        cacheEnvironment = true
+        optimizeClassLoading = true
+        deduceEnvironment = true
+        optimizeNetty = true
+        replaceLogbackXml = true
+    }
+}
+
+// ── GraalVM Native (futuro: compilación nativa para Lambda) ──
+graalvmNative {
+    toolchainDetection = false
+}
