@@ -29,6 +29,9 @@ micronaut:
         access-token:
           expiration: 28800
     intercept-url-map:
+      - pattern: /**
+        http-method: OPTIONS
+        access: [isAnonymous()]
       - pattern: /auth/**
         http-method: POST
         access: [isAnonymous()]
