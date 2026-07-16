@@ -6,7 +6,10 @@ build/
 # IDE
 .idea/
 *.iml
-out/
+/out/
 
 # OS
 .DS_Store
+
+# Prompts / notas locales
+/prompt.tx

@@ -135,6 +135,40 @@ public class ProductoJdbcAdapter implements ProductoRepositoryPort {
         }
     }
 
+    @Override
+    public boolean descontarStock(UUID tiendaId, UUID productoId, int cantidad, int versionEsperada) {
+        // UPDATE condicional atómico: stock y version se verifican y actualizan
+        // en la misma sentencia. Si otra transacción ya modificó el producto
+        // (version distinta) o no queda stock suficiente, 0 filas afectadas.
+        String sql = """
+                UPDATE productos
+                SET stock = stock - ?, version = version + 1, updated_at = NOW()
+                WHERE id = ? AND tienda_id = ? AND version = ? AND stock >= ?
+                """;
+
+        try (Connection conn = dataSource.getConnection()) {
+            tenantConnectionHelper.applyTenantContext(conn);
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, cantidad);
+                ps.setObject(2, productoId);
+                ps.setObject(3, tiendaId);
+                ps.setInt(4, versionEsperada);
+                ps.setInt(5, cantidad);
+
+                int filas = ps.executeUpdate();
+                if (filas == 0) {
+                    log.debug("Descuento de stock rechazado (version/stock no coincide): producto {} v{}",
+                            productoId, versionEsperada);
+                }
+                return filas == 1;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error descontando stock del producto: " + productoId, e);
+        }
+    }
+
     // ── Mapper: ResultSet → Entidad de dominio ──
 
     private Producto mapRow(ResultSet rs) throws SQLException {
