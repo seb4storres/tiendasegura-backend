@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,6 +112,30 @@ public class ProductoJdbcAdapter implements ProductoRepositoryPort {
 
         } catch (SQLException e) {
             throw new RuntimeException("Error buscando producto por ID: " + id, e);
+        }
+    }
+
+    @Override
+    public List<Producto> listarPorTienda(UUID tiendaId) {
+        String sql = "SELECT * FROM productos WHERE tienda_id = ? ORDER BY nombre";
+
+        try (Connection conn = dataSource.getConnection()) {
+            tenantConnectionHelper.applyTenantContext(conn);
+
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setObject(1, tiendaId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<Producto> productos = new ArrayList<>();
+                    while (rs.next()) {
+                        productos.add(mapRow(rs));
+                    }
+                    return productos;
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error listando productos de la tienda: " + tiendaId, e);
         }
     }
 

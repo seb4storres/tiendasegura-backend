@@ -2,8 +2,10 @@ package co.tiendasegura.inventario.infrastructure.config;
 
 import co.tiendasegura.inventario.application.ports.in.BuscarProductoUseCase;
 import co.tiendasegura.inventario.application.ports.in.CrearProductoUseCase;
+import co.tiendasegura.inventario.application.ports.in.ListarProductosUseCase;
 import co.tiendasegura.inventario.application.services.BuscarProductoService;
 import co.tiendasegura.inventario.application.services.CrearProductoService;
+import co.tiendasegura.inventario.application.services.ListarProductosService;
 import co.tiendasegura.inventario.domain.ports.out.ProductoRepositoryPort;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
@@ -32,5 +34,11 @@ public class InventarioUseCaseFactory {
     @Transactional
     public BuscarProductoUseCase buscarProductoUseCase(ProductoRepositoryPort productoRepository) {
         return new BuscarProductoService(productoRepository);
+    }
+
+    @Singleton
+    @Transactional
+    public ListarProductosUseCase listarProductosUseCase(ProductoRepositoryPort productoRepository) {
+        return new ListarProductosService(productoRepository);
     }
 }

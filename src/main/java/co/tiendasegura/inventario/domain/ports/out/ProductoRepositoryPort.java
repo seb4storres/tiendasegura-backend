@@ -2,6 +2,7 @@ package co.tiendasegura.inventario.domain.ports.out;
 
 import co.tiendasegura.inventario.domain.model.Producto;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +16,12 @@ public interface ProductoRepositoryPort {
     Producto guardar(Producto producto);
 
     Optional<Producto> buscarPorId(UUID tiendaId, UUID id);
+
+    /**
+     * Lista todos los productos de una tienda, ordenados por nombre.
+     * Siempre tenant-scoped: nunca expone productos de otra tienda.
+     */
+    List<Producto> listarPorTienda(UUID tiendaId);
 
     boolean existeCodigoBarras(UUID tiendaId, String codigoBarras);
 
