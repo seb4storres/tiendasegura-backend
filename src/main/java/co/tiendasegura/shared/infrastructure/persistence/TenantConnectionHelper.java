@@ -1,6 +1,6 @@
 package co.tiendasegura.shared.infrastructure.persistence;
 
-import co.tiendasegura.auth.infrastructure.security.TenantContext;
+import co.tiendasegura.shared.infrastructure.security.TenantContext;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

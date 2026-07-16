@@ -1,5 +1,6 @@
 package co.tiendasegura.auth.infrastructure.security;
 
+import co.tiendasegura.shared.infrastructure.security.TenantContext;
 import io.micronaut.core.order.Ordered;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
@@ -11,7 +12,6 @@ import io.micronaut.security.authentication.Authentication;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.UUID;
@@ -21,15 +21,14 @@ import java.util.UUID;
  *
  * Responsabilidades:
  *   1. Extrae tienda_id y user_id del JWT (ya validado por Micronaut Security).
- *   2. Los almacena en TenantContext (ThreadLocal).
- *   3. Limpia el contexto al finalizar la petición (doFinally).
+ *   2. Los guarda como atributos del HttpRequest (no un ThreadLocal — ver
+ *      TenantContext para el porqué).
  *
  * Para endpoints públicos (/auth/**), el JWT no existe → TenantContext queda vacío.
  * Los repositorios de auth están diseñados para operar sin tenant context.
  *
- * Nota sobre threading: Este filtro corre en el event loop de Netty.
- * El @ExecuteOn(BLOCKING) en los controllers propaga el contexto al thread pool
- * de bloqueo donde corren los repositorios JDBC.
+ * No hace falta limpiar nada al finalizar la petición: los atributos viven
+ * en el HttpRequest, que se descarta junto con la petición.
  */
 @Filter(Filter.MATCH_ALL_PATTERN)
 public class TenantSecurityFilter implements HttpServerFilter, Ordered {
@@ -45,9 +44,7 @@ public class TenantSecurityFilter implements HttpServerFilter, Ordered {
     @Override
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         extractTenantFromAuthentication(request);
-
-        return Flux.from(chain.proceed(request))
-                .doFinally(signal -> TenantContext.clear());
+        return chain.proceed(request);
     }
 
     private void extractTenantFromAuthentication(HttpRequest<?> request) {
@@ -61,7 +58,8 @@ public class TenantSecurityFilter implements HttpServerFilter, Ordered {
                     try {
                         UUID tiendaId = UUID.fromString(tiendaIdRaw.toString());
                         UUID userId = UUID.fromString(userIdRaw.toString());
-                        TenantContext.set(tiendaId, userId);
+                        request.setAttribute(TenantContext.ATTR_TIENDA_ID, tiendaId);
+                        request.setAttribute(TenantContext.ATTR_USUARIO_ID, userId);
                         log.trace("Tenant context: tienda={}, usuario={}", tiendaId, userId);
                     } catch (IllegalArgumentException e) {
                         log.warn("Claims de tenant con formato UUID inválido: tienda={}, user={}",
