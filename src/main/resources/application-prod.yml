@@ -1,0 +1,31 @@
+# Perfil PROD: activar con MICRONAUT_ENVIRONMENTS=prod
+# Sin valores por defecto para credenciales ni secretos: si falta alguna
+# variable de entorno, el arranque debe fallar en lugar de usar un fallback
+# inseguro.
+datasources:
+  default:
+    url: ${JDBC_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+
+micronaut:
+  server:
+    cors:
+      configurations:
+        web:
+          allowed-origins: ${CORS_URL}
+  security:
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: ${JWT_SECRET}
+        generator:
+          refresh-token:
+            secret: ${JWT_REFRESH_SECRET}

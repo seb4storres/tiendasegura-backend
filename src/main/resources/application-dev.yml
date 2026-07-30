@@ -1,0 +1,31 @@
+# Perfil DEV: activar con MICRONAUT_ENVIRONMENTS=dev
+# Apunta al proyecto Supabase de desarrollo. Los secretos JWT tienen un
+# fallback local para que el equipo pueda levantar el perfil sin configurar
+# todo, pero en Railway deben sobrescribirse con variables reales.
+datasources:
+  default:
+    url: ${JDBC_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+
+micronaut:
+  server:
+    cors:
+      configurations:
+        web:
+          allowed-origins: ${CORS_URL:`http://localhost:5173`}
+  security:
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: ${JWT_SECRET:`dev-secret-no-usar-en-prod-min-256-bits`}
+        generator:
+          refresh-token:
+            secret: ${JWT_REFRESH_SECRET:`dev-refresh-secret-no-usar-en-prod-256b`}
