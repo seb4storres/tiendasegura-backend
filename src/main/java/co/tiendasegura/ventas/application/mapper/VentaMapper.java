@@ -25,6 +25,7 @@ public final class VentaMapper {
                 venta.getSubtotal(),
                 venta.getDescuento(),
                 venta.getTotal(),
+                venta.getIva(),
                 venta.getMetodoPago().name(),
                 venta.getMontoRecibido(),
                 venta.getCambio(),

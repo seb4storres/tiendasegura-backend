@@ -20,6 +20,7 @@ public record VentaResponse(
         BigDecimal subtotal,
         BigDecimal descuento,
         BigDecimal total,
+        BigDecimal iva,
         String metodoPago,
         BigDecimal montoRecibido,
         BigDecimal cambio,

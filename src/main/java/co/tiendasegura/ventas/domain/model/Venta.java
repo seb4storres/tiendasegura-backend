@@ -1,6 +1,7 @@
 package co.tiendasegura.ventas.domain.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -16,6 +17,10 @@ import java.util.UUID;
  */
 public class Venta {
 
+    // Los precios de producto ya incluyen IVA (19%): el total que paga el
+    // cliente no cambia, el IVA se extrae del total para el desglose fiscal.
+    private static final BigDecimal TASA_IVA = new BigDecimal("1.19");
+
     private final UUID id;
     private final UUID tiendaId;
     private final UUID cajeroId;
@@ -24,6 +29,7 @@ public class Venta {
     private final BigDecimal subtotal;
     private final BigDecimal descuento;
     private final BigDecimal total;
+    private final BigDecimal iva;
     private final MetodoPago metodoPago;
     private final BigDecimal montoRecibido;
     private final BigDecimal cambio;
@@ -35,7 +41,7 @@ public class Venta {
     // ── Constructor privado: toda creación pasa por factory methods ──
 
     private Venta(UUID id, UUID tiendaId, UUID cajeroId, UUID clienteId, Instant fecha,
-                  BigDecimal subtotal, BigDecimal descuento, BigDecimal total,
+                  BigDecimal subtotal, BigDecimal descuento, BigDecimal total, BigDecimal iva,
                   MetodoPago metodoPago, BigDecimal montoRecibido, BigDecimal cambio,
                   EstadoVenta estado, String notas, Instant createdAt, List<DetalleVenta> detalles) {
         this.id = Objects.requireNonNull(id, "El ID de la venta es obligatorio");
@@ -46,6 +52,7 @@ public class Venta {
         this.subtotal = Objects.requireNonNull(subtotal, "El subtotal es obligatorio");
         this.descuento = Objects.requireNonNull(descuento, "El descuento es obligatorio");
         this.total = Objects.requireNonNull(total, "El total es obligatorio");
+        this.iva = Objects.requireNonNull(iva, "El IVA es obligatorio");
         this.metodoPago = Objects.requireNonNull(metodoPago, "El método de pago es obligatorio");
         this.montoRecibido = montoRecibido;
         this.cambio = cambio;
@@ -93,23 +100,31 @@ public class Venta {
             cambio = montoRecibido.subtract(total);
         }
 
+        BigDecimal iva = calcularIva(total);
+
         Instant ahora = Instant.now();
         return new Venta(
                 id, tiendaId, cajeroId, clienteId, ahora,
-                subtotal, descuentoAplicado, total,
+                subtotal, descuentoAplicado, total, iva,
                 metodoPago, montoRecibido, cambio,
                 EstadoVenta.COMPLETADA, notas, ahora, detalles
         );
     }
 
+    // El total ya incluye IVA (19%): se extrae del total, no se le suma.
+    private static BigDecimal calcularIva(BigDecimal total) {
+        BigDecimal baseGravable = total.divide(TASA_IVA, 2, RoundingMode.HALF_UP);
+        return total.subtract(baseGravable);
+    }
+
     // ── Factory: reconstituir desde base de datos ──
 
     public static Venta reconstituir(UUID id, UUID tiendaId, UUID cajeroId, UUID clienteId, Instant fecha,
-                                     BigDecimal subtotal, BigDecimal descuento, BigDecimal total,
+                                     BigDecimal subtotal, BigDecimal descuento, BigDecimal total, BigDecimal iva,
                                      MetodoPago metodoPago, BigDecimal montoRecibido, BigDecimal cambio,
                                      EstadoVenta estado, String notas, Instant createdAt,
                                      List<DetalleVenta> detalles) {
-        return new Venta(id, tiendaId, cajeroId, clienteId, fecha, subtotal, descuento, total,
+        return new Venta(id, tiendaId, cajeroId, clienteId, fecha, subtotal, descuento, total, iva,
                 metodoPago, montoRecibido, cambio, estado, notas, createdAt, detalles);
     }
 
@@ -123,6 +138,7 @@ public class Venta {
     public BigDecimal getSubtotal() { return subtotal; }
     public BigDecimal getDescuento() { return descuento; }
     public BigDecimal getTotal() { return total; }
+    public BigDecimal getIva() { return iva; }
     public MetodoPago getMetodoPago() { return metodoPago; }
     public BigDecimal getMontoRecibido() { return montoRecibido; }
     public BigDecimal getCambio() { return cambio; }

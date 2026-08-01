@@ -50,8 +50,8 @@ public class VentaJdbcAdapter implements VentaRepositoryPort {
     public Venta guardar(Venta venta) {
         String sqlVenta = """
                 INSERT INTO ventas (id, tienda_id, usuario_id, cliente_id, fecha, subtotal, descuento,
-                                     total, metodo_pago, monto_recibido, cambio, estado, notas, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     total, iva, metodo_pago, monto_recibido, cambio, estado, notas, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         String sqlDetalle = """
                 INSERT INTO detalle_ventas (id, venta_id, tienda_id, producto_id, cantidad,
@@ -71,12 +71,13 @@ public class VentaJdbcAdapter implements VentaRepositoryPort {
                 ps.setBigDecimal(6, venta.getSubtotal());
                 ps.setBigDecimal(7, venta.getDescuento());
                 ps.setBigDecimal(8, venta.getTotal());
-                ps.setString(9, venta.getMetodoPago().name());
-                ps.setBigDecimal(10, venta.getMontoRecibido());
-                ps.setBigDecimal(11, venta.getCambio());
-                ps.setString(12, venta.getEstado().name());
-                ps.setString(13, venta.getNotas());
-                ps.setTimestamp(14, Timestamp.from(venta.getCreatedAt()));
+                ps.setBigDecimal(9, venta.getIva());
+                ps.setString(10, venta.getMetodoPago().name());
+                ps.setBigDecimal(11, venta.getMontoRecibido());
+                ps.setBigDecimal(12, venta.getCambio());
+                ps.setString(13, venta.getEstado().name());
+                ps.setString(14, venta.getNotas());
+                ps.setTimestamp(15, Timestamp.from(venta.getCreatedAt()));
                 ps.executeUpdate();
             }
 
@@ -156,6 +157,7 @@ public class VentaJdbcAdapter implements VentaRepositoryPort {
                 rs.getBigDecimal("subtotal"),
                 rs.getBigDecimal("descuento"),
                 rs.getBigDecimal("total"),
+                rs.getBigDecimal("iva"),
                 MetodoPago.valueOf(rs.getString("metodo_pago")),
                 rs.getBigDecimal("monto_recibido"),
                 rs.getBigDecimal("cambio"),
@@ -180,11 +182,11 @@ public class VentaJdbcAdapter implements VentaRepositoryPort {
 
     /** Fila cruda de `ventas`, previa a ensamblar el agregado completo con sus detalles. */
     private record VentaRow(UUID id, UUID tiendaId, UUID cajeroId, UUID clienteId, Instant fecha,
-                            BigDecimal subtotal, BigDecimal descuento, BigDecimal total,
+                            BigDecimal subtotal, BigDecimal descuento, BigDecimal total, BigDecimal iva,
                             MetodoPago metodoPago, BigDecimal montoRecibido, BigDecimal cambio,
                             EstadoVenta estado, String notas, Instant createdAt) {
         Venta toVenta(List<DetalleVenta> detalles) {
-            return Venta.reconstituir(id, tiendaId, cajeroId, clienteId, fecha, subtotal, descuento, total,
+            return Venta.reconstituir(id, tiendaId, cajeroId, clienteId, fecha, subtotal, descuento, total, iva,
                     metodoPago, montoRecibido, cambio, estado, notas, createdAt, detalles);
         }
     }
