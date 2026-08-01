@@ -6,29 +6,37 @@ import co.tiendasegura.ventas.domain.ports.out.FiadosPort;
 import co.tiendasegura.ventas.domain.ports.out.InventarioPort;
 import co.tiendasegura.ventas.domain.ports.out.VentaRepositoryPort;
 import io.micronaut.context.annotation.Factory;
+import io.micronaut.transaction.TransactionOperations;
 import jakarta.inject.Singleton;
-import jakarta.transaction.Transactional;
+
+import java.sql.Connection;
 
 /**
  * Factory de Micronaut que ensambla los casos de uso del dominio de ventas.
  *
- * @Transactional aquí es lo que hace ACID el "motor transaccional": la
- * creación de la venta, sus detalles, el descuento de stock (vía
- * InventarioPort) y el registro de deuda cuando aplica (vía FiadosPort)
- * ocurren en la misma conexión/transacción — los tres puertos comparten el
- * mismo DataSource, así que la propagación de transacción de Micronaut los
- * une en una sola unidad atómica. Si algo falla a mitad de camino, todo se
- * revierte: no quedan ventas sin stock descontado, stock descontado sin
- * venta registrada, ni deudas registradas sin su venta.
+ * A diferencia de otros casos de uso del proyecto, aquí NO se usa
+ * @Transactional declarativo envolviendo todo el método: RegistrarVentaService
+ * necesita demarcar su transacción de forma explícita (vía
+ * TransactionOperations) para poder recuperarse de una carrera de
+ * idempotencia (VentaDuplicadaException) SIN que esa recuperación quede
+ * atrapada dentro de la misma transacción que hay que revertir. Ver el
+ * Javadoc de RegistrarVentaService para el detalle completo.
+ *
+ * TransactionOperations<Connection> es el mismo mecanismo transaccional que
+ * respalda a @Transactional en el resto del proyecto (micronaut-data-tx-jdbc
+ * sobre el único DataSource "default") — sigue siendo ACID: creación de la
+ * venta, sus detalles, el descuento de stock (vía InventarioPort) y el
+ * registro de deuda cuando aplica (vía FiadosPort) ocurren en la misma
+ * conexión/transacción.
  */
 @Factory
 public class VentasUseCaseFactory {
 
     @Singleton
-    @Transactional
     public RegistrarVentaUseCase registrarVentaUseCase(VentaRepositoryPort ventaRepository,
                                                         InventarioPort inventarioPort,
-                                                        FiadosPort fiadosPort) {
-        return new RegistrarVentaService(ventaRepository, inventarioPort, fiadosPort);
+                                                        FiadosPort fiadosPort,
+                                                        TransactionOperations<Connection> transactionOperations) {
+        return new RegistrarVentaService(ventaRepository, inventarioPort, fiadosPort, transactionOperations);
     }
 }

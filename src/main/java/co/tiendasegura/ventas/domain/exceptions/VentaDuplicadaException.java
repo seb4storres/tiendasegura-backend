@@ -8,8 +8,9 @@ import java.util.UUID;
  * llegaron casi al mismo tiempo y ambas pasaron la verificación previa de
  * "¿ya existe?" antes de que cualquiera de las dos confirmara. La transacción
  * de este intento se revierte por completo (incluyendo el stock ya
- * descontado), así que un reintento del cliente con el mismo ID encontrará
- * la venta de la solicitud que sí ganó la carrera.
+ * descontado). RegistrarVentaService la captura y resuelve la carrera
+ * internamente devolviendo la venta que sí ganó — el cliente nunca ve este
+ * error.
  */
 public class VentaDuplicadaException extends VentaDomainException {
 
