@@ -7,6 +7,7 @@ import co.tiendasegura.ventas.domain.model.EstadoVenta;
 import co.tiendasegura.ventas.domain.model.MetodoPago;
 import co.tiendasegura.ventas.domain.model.Venta;
 import co.tiendasegura.ventas.domain.ports.out.VentaRepositoryPort;
+import io.micronaut.transaction.annotation.ReadOnly;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,14 +25,21 @@ import java.util.UUID;
  * Adaptador de salida: implementación JDBC del repositorio de Ventas.
  *
  * guardar() inserta la venta y todos sus detalles en la misma conexión.
- * Como corre dentro del @Transactional del caso de uso (ver
- * VentasUseCaseFactory), ese insert y el descuento de stock hecho antes
- * por InventarioPort son atómicos: todo o nada.
+ * Como corre dentro del TransactionOperations.executeWrite del caso de uso
+ * (ver RegistrarVentaService / VentasUseCaseFactory), ese insert y el
+ * descuento de stock hecho antes por InventarioPort son atómicos: todo o
+ * nada.
  *
  * A propósito NO usa ON CONFLICT en el insert de `ventas`: un choque de PK
  * (mismo id de venta) es exactamente la señal de una solicitud duplicada
  * concurrente, y se traduce a VentaDuplicadaException para que el caso de
  * uso la distinga de un error real.
+ *
+ * buscarPorId() se usa TANTO dentro de esa transacción de escritura COMO
+ * fuera de ella (el pre-check de idempotencia y la recuperación tras una
+ * carrera, en RegistrarVentaService, corren sin una transacción activa) —
+ * @ReadOnly asegura que siempre haya una conexión/transacción disponible
+ * para el método, sin depender de que el caller ya tenga una.
  */
 @Singleton
 public class VentaJdbcAdapter implements VentaRepositoryPort {
@@ -108,6 +116,7 @@ public class VentaJdbcAdapter implements VentaRepositoryPort {
     }
 
     @Override
+    @ReadOnly
     public Optional<Venta> buscarPorId(UUID tiendaId, UUID id) {
         String sqlVenta = "SELECT * FROM ventas WHERE id = ? AND tienda_id = ?";
         String sqlDetalles = "SELECT * FROM detalle_ventas WHERE venta_id = ? AND tienda_id = ? ORDER BY created_at";
