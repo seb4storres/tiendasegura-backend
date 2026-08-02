@@ -11,6 +11,8 @@ micronaut:
             - http://localhost:5173
             - http://127.0.0.1:5173
             - https://tiendasegura.vercel.app
+          allowed-origins-regex: '^https:\/\/tiendasegura-frontend.*\.vercel\.app$'
+          allow-credentials: true
           exposed-headers: [Authorization]
   security:
     authentication: bearer
